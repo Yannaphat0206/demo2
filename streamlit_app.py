@@ -85,12 +85,23 @@ def get_synonyms_pos_and_definitions(word, lang):
     elif lang == 'th':
         synonyms = get_synonyms_thai(word)
     else:
-        return "Language not supported"
+        # Return an empty DataFrame with a message
+        return pd.DataFrame([{"Synonym": word, "POS/Details": "Language not supported"}])
     
     definitions = get_openai_definitions_and_pos(synonyms, lang)
     data = [{"Synonym": syn, "POS/Details": defn} for syn, defn in zip(synonyms, definitions)]
     
     return pd.DataFrame(data)
+
+# Main logic for displaying translations and definitions
+if translations:
+    st.write("Translations:")
+    for lang, translation in translations.items():
+        st.write(f"- {lang}: {translation}")
+        st.write(f"{lang} Synonyms, POS, and Definitions:")
+        translated_df = get_synonyms_pos_and_definitions(translation, lang.lower())  # Ensure lang is lowercase
+        st.dataframe(translated_df)
+
 
 # Synonyms for English using NLTK
 def get_synonyms_nltk_english(word):
