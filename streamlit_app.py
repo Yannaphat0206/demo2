@@ -32,6 +32,26 @@ def get_openai_definition(word):
     except Exception as e:
         return f"Error: {str(e)}"
 
+# OpenAI function to determine part of speech and gender (for French)
+def get_openai_pos_gender(word, lang):
+    try:
+        if lang != 'fr':
+            return "POS and Gender not applicable"
+        
+        # Constructing a prompt for French POS and gender
+        prompt = f"Determine the part of speech and gender of the French word '{word}'. Provide both the POS and gender if applicable."
+        
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # or "gpt-4" if you have access
+            messages=[{"role": "system", "content": "You are a helpful assistant."},
+                      {"role": "user", "content": prompt}],
+            max_tokens=100,
+            temperature=0.7
+        )
+        return response['choices'][0]['message']['content'].strip()
+    except Exception as e:
+        return f"Error: {str(e)}"
+
 # Function to detect language using OpenAI
 def detect_language_openai(text):
     try:
@@ -85,7 +105,7 @@ def get_synonyms_and_definitions(word, lang):
         return "Language not supported"
 
     definitions = [get_openai_definition(syn) for syn in synonyms]
-    pos_and_gender = [get_pos_and_gender(syn, lang) for syn in synonyms]
+    pos_and_gender = [get_openai_pos_gender(syn, lang) for syn in synonyms]
     
     # Create a DataFrame for synonyms, POS, and Definitions
     data = [{"Synonym": syn, "POS & Gender": pos, "Definition": defn} for syn, pos, defn in zip(synonyms, pos_and_gender, definitions)]
@@ -122,19 +142,6 @@ def get_synonyms_thai(word):
         return synonyms
     except Exception as e:
         return [f"Error fetching synonyms for {word}: {str(e)}"]  # Return detailed error
-
-# Function to determine part of speech and gender for French words
-def get_pos_and_gender(word, lang):
-    if lang == 'fr':
-        # French POS and Gender (simplified; you may integrate actual French tools for POS tagging)
-        if word.lower() in ['le', 'la', 'un', 'une']:  # Articles
-            return "Article", None
-        if word.lower() in ['chat', 'chien']:  # Noun examples (simplified)
-            return "Noun", "Masculine" if word == 'chat' else "Feminine"
-        if word.lower() in ['belle', 'grand']:  # Adjective examples (simplified)
-            return "Adjective", "Feminine" if word == 'belle' else "Masculine"
-        return "Unknown", None
-    return "Unknown", None  # For other languages, return unknown
 
 # Main app
 st.title("Translator with Synonym, POS, Gender, and Definition")
