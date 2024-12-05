@@ -21,8 +21,8 @@ def get_openai_response(prompt):
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=100,  # Limit response length
-            temperature=0.7  # Creativity of response
+            max_tokens=200,  # Limit response length
+            temperature=0.8  # Creativity of response
         )
         return response.choices[0].message["content"].strip()
     except Exception as e:
@@ -45,9 +45,11 @@ if check_lang[0] == "fr":
     # Translate French to English using deep-translator
     translation_fr_to_eng = GoogleTranslator(source='fr', target='en').translate(user_input)
     st.write(f"Translation (French to English): {translation_fr_to_eng}")
+    translation_fr_to_th = GoogleTranslator(source='en', target='fr').translate( translation_fr_to_eng)
+    st.write(f"Translation (French to English): {translation_fr_to_th}")
 
     # Get a definition or a synonym from OpenAI
-    openai_prompt = f"Provide a definition or synonym for the word '{translation_fr_to_eng}' in English."
+    openai_prompt = f"Provide a definition or synonym for the word '{translation_fr_to_eng}' in English, Thai, and French."
     openai_response = get_openai_response(openai_prompt)
     st.write(f"OpenAI Response (Definition/Synonym): {openai_response}")
 
