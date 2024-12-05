@@ -4,8 +4,9 @@ import streamlit as st
 import langid
 from googletrans import Translator
 
+
 # Initialize the Translator (for translation tasks)
-translator = Translator
+translator = Translator()
 
 # Sidebar input to accept the OpenAI API key
 user_api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password", key="api_key")
