@@ -46,7 +46,7 @@ if check_lang[0] == "fr":
     translation_fr_to_eng = GoogleTranslator(source='fr', target='en').translate(user_input)
     st.write(f"Translation (French to English): {translation_fr_to_eng}")
     translation_fr_to_th = GoogleTranslator(source='en', target='fr').translate( translation_fr_to_eng)
-    st.write(f"Translation (French to English): {translation_fr_to_th}")
+    st.write(f"Translation (French to Thai): {translation_fr_to_th}")
 
     # Get a definition or a synonym from OpenAI
     openai_prompt = f"Provide a definition or synonym for the word '{translation_fr_to_eng}' in English, Thai, and French."
