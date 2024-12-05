@@ -7,7 +7,10 @@ from PyDictionary import PyDictionary
 import pronouncing
 from spellchecker import SpellChecker
 from pythainlp.spell import correct as thai_correct
-from nltk.corpus import wordnet
+import nltk
+nltk.download('wordnet')
+nltk.download('omw-1.4') 
+
 
 # Sidebar for API Key
 user_api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password", key="api_key")
