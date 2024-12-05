@@ -116,11 +116,11 @@ def get_synonyms_nltk_english(word):
 
 # Placeholder for French synonyms (improve this with actual logic)
 def get_synonyms_french(word):
-    return [word]  # Simplified, add actual logic for French synonyms
+    return get_synonyms_nltk_english(word)  # Using NLTK English synonyms for French as placeholder
 
 # Placeholder for Thai synonyms (improve this with actual logic)
 def get_synonyms_thai(word):
-    return [word]  # Simplified, add actual logic for Thai synonyms
+    return get_synonyms_nltk_english(word)  # Using NLTK English synonyms for Thai as placeholder
 
 # Function to determine part of speech and gender for French words
 def get_pos_and_gender(word, lang):
