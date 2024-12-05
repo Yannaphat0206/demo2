@@ -56,16 +56,21 @@ def detect_language_openai(text):
     except Exception as e:
         return f"Error: {str(e)}"
 
-def preprocess_input(text, lang):
-    articles = {
-        "fr": ["le", "la", "les", "un", "une", "des", "du", "de", "l'", "d'"],
-        "en": ["the", "a", "an"],
-        "th": []  # Thai does not use articles in the same way.
-    }
-    words = text.split()
-    if lang in articles and words[0].lower() in articles[lang]:
-        words = words[1:]  # Remove the first word if it's an article
-    return " ".join(words)
+def get_openai_definition_ignore_articles(word):
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": f"Ignore articles like 'le', 'la', 'the', and provide a definition for the core word: '{word}'"}
+            ],
+            max_tokens=100,
+            temperature=0.7
+        )
+        return response['choices'][0]['message']['content'].strip()
+    except Exception as e:
+        return f"Error: {str(e)}"
+
 
 
 # Title for the app
