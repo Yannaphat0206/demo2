@@ -1,1 +1,7 @@
 streamlit
+requests
+openai
+streamlit as st
+langid
+googletrans 
+translate
