@@ -103,16 +103,25 @@ def get_synonyms_nltk_english(word):
 
 # Function to get French synonyms using WordReference API (example)
 def get_synonyms_french(word):
-    url = f"https://api.wordreference.com/0.8/your_api_key/json/fren/en/{word}"  # Replace with your actual API key
-    response = requests.get(url).json()
-    if 'term0' in response:
-        return [entry['term'] for entry in response['term0']['entries']]
-    return [word]  # Default to the word itself if no synonyms found
+    try:
+        url = f"https://api.wordreference.com/0.8/your_api_key/json/fren/en/{word}"  # Replace with your actual API key
+        response = requests.get(url).json()
+        if 'term0' in response:
+            return [entry['term'] for entry in response['term0']['entries']]
+        else:
+            return [word]  # Default to the word itself if no synonyms found
+    except Exception as e:
+        return [f"Error fetching synonyms for {word}: {str(e)}"]  # Return detailed error
 
 # Function to get Thai synonyms using PyThaiNLP
 def get_synonyms_thai(word):
-    # You may need to enhance this function for real synonym handling.
-    return [thai_correct(word)]  # Placeholder; integrate more sophisticated logic as needed
+    try:
+        synonyms = [thai_correct(word)]  # Placeholder; integrate more sophisticated logic as needed
+        if len(synonyms) == 0:
+            return [f"No synonyms found for {word}"]  # Fallback
+        return synonyms
+    except Exception as e:
+        return [f"Error fetching synonyms for {word}: {str(e)}"]  # Return detailed error
 
 # Function to determine part of speech and gender for French words
 def get_pos_and_gender(word, lang):
