@@ -27,11 +27,14 @@ def remove_articles(text, lang):
     filtered_words = [word for word in words if word.lower() not in articles.get(lang, [])]
     return " ".join(filtered_words)
 
-# OpenAI Function to get batch definitions using ChatGPT model
+# OpenAI Function to get batch definitions and POS using ChatGPT model
 @st.cache_data
-def get_openai_definitions_batch(words):
+def get_openai_definitions_and_pos(words, lang):
     try:
-        prompt = "Provide definitions for the following words:\n" + "\n".join(words)
+        prompt = f"Provide the part of speech, and definition for each of the following {lang} words:\n" + "\n".join(words)
+        if lang == 'French':
+            prompt += "\nAlso provide the gender for nouns and adjectives."
+
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -73,8 +76,8 @@ def translate_input(user_input, detected_lang):
         return {"Error": f"Translation Error: {str(e)}"}
     return translations
 
-# Function to handle synonyms and definitions for different languages
-def get_synonyms_and_definitions(word, lang):
+# Function to handle synonyms, POS, and definitions
+def get_synonyms_pos_and_definitions(word, lang):
     if lang == 'en':
         synonyms = get_synonyms_nltk_english(word)
     elif lang == 'fr':
@@ -84,8 +87,8 @@ def get_synonyms_and_definitions(word, lang):
     else:
         return "Language not supported"
     
-    definitions = get_openai_definitions_batch(synonyms)
-    data = [{"Synonym": syn, "Definition": defn} for syn, defn in zip(synonyms, definitions)]
+    definitions = get_openai_definitions_and_pos(synonyms, lang)
+    data = [{"Synonym": syn, "POS/Details": defn} for syn, defn in zip(synonyms, definitions)]
     
     return pd.DataFrame(data)
 
@@ -99,14 +102,14 @@ def get_synonyms_nltk_english(word):
             synonyms.add(lemma.name())
     return list(synonyms)
 
-# Synonyms for French (placeholder)
+# Placeholder synonyms for French
 def get_synonyms_french(word):
-    synonyms = [word]  # Placeholder for actual synonyms
+    synonyms = [word]  # Placeholder
     while len(synonyms) < 3:
         synonyms.append(word)
     return synonyms
 
-# Synonyms for Thai (placeholder)
+# Placeholder synonyms for Thai
 def get_synonyms_thai(word):
     synonyms = [word]
     while len(synonyms) < 3:
@@ -114,8 +117,8 @@ def get_synonyms_thai(word):
     return synonyms
 
 # Title for the app
-st.title("Translator with Synonyms and Definitions")
-st.markdown("Input your vocabulary, and we'll provide translations, synonyms, and definitions.")
+st.title("Translator with Synonyms, POS, and Definitions")
+st.markdown("Input your vocabulary, and we'll provide translations, synonyms, POS, and definitions.")
 
 # User input
 user_input = st.text_area("Enter the word or phrase:")
@@ -140,20 +143,19 @@ if user_input.strip():
             st.write(f"Corrected Spelling: {corrected_word}")
             cleaned_input = corrected_word
 
-    # Synonyms and definitions for the original language
-    st.write(f"{detected_lang.upper()} Synonyms and Definitions:")
-    original_df = get_synonyms_and_definitions(cleaned_input, detected_lang)
+    # Synonyms, POS, and definitions for the original language
+    st.write(f"{detected_lang.upper()} Synonyms, POS, and Definitions:")
+    original_df = get_synonyms_pos_and_definitions(cleaned_input, detected_lang)
     st.dataframe(original_df)
 
     # Translate the input and display the result
     translations = translate_input(cleaned_input, detected_lang)
-
     if translations:
         st.write("Translations:")
         for lang, translation in translations.items():
             st.write(f"- {lang}: {translation}")
-            st.write(f"{lang} Synonyms and Definitions:")
-            translated_df = get_synonyms_and_definitions(translation, lang.lower()[:2])
+            st.write(f"{lang} Synonyms, POS, and Definitions:")
+            translated_df = get_synonyms_pos_and_definitions(translation, lang.capitalize())
             st.dataframe(translated_df)
 else:
     st.warning("Please enter a valid word or phrase to process.")
