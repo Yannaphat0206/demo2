@@ -9,9 +9,6 @@ from spellchecker import SpellChecker
 from pythainlp.spell import correct as thai_correct
 from nltk.corpus import wordnet
 
-# Initialize Dictionary and Translator
-dictionary = PyDictionary()
-
 # Sidebar for API Key
 user_api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password", key="api_key")
 if user_api_key:
@@ -35,10 +32,17 @@ def get_ipa(word):
     ipa_list = pronouncing.phones_for_word(word)
     if ipa_list:
         return pronouncing.ipa(ipa_list[0])
-    else:
-        return "IPA not found"
+    return "IPA not found"
 
-# Synonym, IPA, and Definition Retrieval Function
+# Synonyms, IPA, and Definitions Retrieval
+def get_synonyms_and_ipa(word):
+    synonyms = get_synonyms_nltk(word)
+    ipa_transcriptions = [get_ipa(syn) for syn in synonyms]
+    definitions = [get_first_definition(dictionary.meaning(syn)) for syn in synonyms]
+    data = [{"Synonym": syn, "IPA": ipa, "Definition": defn} for syn, ipa, defn in zip(synonyms, ipa_transcriptions, definitions)]
+    return pd.DataFrame(data)
+
+# Synonyms using NLTK
 def get_synonyms_nltk(word):
     synonyms = set()
     for syn in wordnet.synsets(word):
@@ -46,12 +50,11 @@ def get_synonyms_nltk(word):
             synonyms.add(lemma.name())
     return list(synonyms)
 
-
 # Extract the first definition from dictionary output
 def get_first_definition(defn):
     if defn:
         for pos in defn.values():
-            return pos[0]  # Get the first definition
+            return pos[0]
     return "No definition available"
 
 # Spelling Correction Function
@@ -62,7 +65,6 @@ def correct_spelling(text, lang):
         spell = SpellChecker(language='en')
     else:
         return thai_correct(text) if lang == "th" else text
-
     return spell.correction(text)
 
 # App Title
@@ -106,4 +108,3 @@ if user_input:
     synonyms_df = get_synonyms_and_ipa(translations.get("English", user_input))
     st.write("**Synonyms, IPA, and Definitions:**")
     st.dataframe(synonyms_df)
-
