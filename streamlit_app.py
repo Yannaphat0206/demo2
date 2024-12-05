@@ -1,10 +1,12 @@
-import requests
 import openai
 import streamlit as st
 import langid
+import pandas as pd
 from deep_translator import GoogleTranslator
 from PyDictionary import PyDictionary
 import pronouncing
+from spellchecker import SpellChecker
+from pythainlp.spell import correct as thai_correct
 
 # Initialize Dictionary and Translator
 dictionary = PyDictionary()
@@ -35,49 +37,71 @@ def get_ipa(word):
     else:
         return "IPA not found"
 
-# Synonym and IPA Retrieval Function
-def get_synonyms_and_ipa(word, lang="en"):
+# Synonym, IPA, and Definition Retrieval Function
+def get_synonyms_and_ipa(word):
     synonyms = dictionary.synonym(word) or []
-    ipa_transcriptions = [get_ipa(syn) for syn in synonyms[:3]]  # Limit to 3 for performance
-    return [{"synonym": syn, "ipa": ipa} for syn, ipa in zip(synonyms[:3], ipa_transcriptions)]
+    ipa_transcriptions = [get_ipa(syn) for syn in synonyms]
+    definitions = [dictionary.meaning(syn) for syn in synonyms]
+    data = [{"Synonym": syn, "IPA": ipa, "Definition": get_first_definition(defn)} for syn, ipa, defn in zip(synonyms, ipa_transcriptions, definitions)]
+    return pd.DataFrame(data)
+
+# Extract the first definition from dictionary output
+def get_first_definition(defn):
+    if defn:
+        for pos in defn.values():
+            return pos[0]  # Get the first definition
+    return "No definition available"
+
+# Spelling Correction Function
+def correct_spelling(text, lang):
+    if lang == "fr":
+        spell = SpellChecker(language='fr')
+    elif lang == "en":
+        spell = SpellChecker(language='en')
+    else:
+        return thai_correct(text) if lang == "th" else text
+
+    return spell.correction(text)
 
 # App Title
-st.title("Translator and Synonym Finder with IPA")
-st.markdown("Input your word, and we'll provide translations, synonyms, and their IPA.")
+st.title("Multilingual Translator with Synonyms, IPA, and Definitions")
+st.markdown("Input your word or phrase for translation, synonym lookup, IPA transcription, and definition.")
 
 # User Input
 user_input = st.text_area("Enter the word or phrase:")
 
-# Detect Language
-check_lang = langid.classify(user_input)
-
 if user_input:
-    # Handle French Input
-    if check_lang[0] == "fr":
-        translation_fr_to_en = GoogleTranslator(source='fr', target='en').translate(user_input)
-        st.write(f"Translation (French to English): {translation_fr_to_en}")
-        
-        synonyms_ipa = get_synonyms_and_ipa(translation_fr_to_en)
-        st.write("Synonyms and IPA Transcription (French -> English):")
-        for syn in synonyms_ipa:
-            st.write(f"- {syn['synonym']} ({syn['ipa']})")
+    # Detect the language
+    detected_lang = langid.classify(user_input)[0]
+    st.write(f"Detected Language: {detected_lang.upper()}")
 
-    # Handle English Input
-    elif check_lang[0] == "en":
-        st.write("Synonyms and IPA Transcription (English):")
-        synonyms_ipa = get_synonyms_and_ipa(user_input)
-        for syn in synonyms_ipa:
-            st.write(f"- {syn['synonym']} ({syn['ipa']})")
+    # Correct spelling based on detected language
+    corrected_word = correct_spelling(user_input, detected_lang)
+    if corrected_word != user_input:
+        st.write(f"Corrected Spelling: {corrected_word}")
+        user_input = corrected_word
 
-    # Handle Thai Input
-    elif check_lang[0] == "th":
-        translation_th_to_en = GoogleTranslator(source='th', target='en').translate(user_input)
-        st.write(f"Translation (Thai to English): {translation_th_to_en}")
-        
-        synonyms_ipa = get_synonyms_and_ipa(translation_th_to_en)
-        st.write("Synonyms and IPA Transcription (Thai -> English):")
-        for syn in synonyms_ipa:
-            st.write(f"- {syn['synonym']} ({syn['ipa']})")
-    
+    # Translation and Synonym handling based on detected language
+    translations = {}
+    if detected_lang == "fr":
+        translations["English"] = GoogleTranslator(source="fr", target="en").translate(user_input)
+        translations["Thai"] = GoogleTranslator(source="en", target="th").translate(translations["English"])
+    elif detected_lang == "en":
+        translations["French"] = GoogleTranslator(source="en", target="fr").translate(user_input)
+        translations["Thai"] = GoogleTranslator(source="en", target="th").translate(user_input)
+    elif detected_lang == "th":
+        translations["English"] = GoogleTranslator(source="th", target="en").translate(user_input)
+        translations["French"] = GoogleTranslator(source="en", target="fr").translate(translations["English"])
     else:
-        st.write("Language not supported for synonym and IPA feature.")
+        st.write("Language not supported for translation.")
+    
+    # Display Translations
+    st.write("**Translations:**")
+    for lang, translation in translations.items():
+        st.write(f"- {lang}: {translation}")
+
+    # Generate Synonyms Table
+    synonyms_df = get_synonyms_and_ipa(translations.get("English", user_input))
+    st.write("**Synonyms, IPA, and Definitions:**")
+    st.dataframe(synonyms_df)
+
