@@ -3,7 +3,6 @@ import streamlit as st
 import langid
 import pandas as pd
 from deep_translator import GoogleTranslator
-from PyDictionary import PyDictionary
 from spellchecker import SpellChecker
 from pythainlp.spell import correct as thai_correct
 import nltk
@@ -11,27 +10,24 @@ from nltk.corpus import wordnet
 nltk.download('wordnet')
 nltk.download('omw-1.4')
 
-# Instantiate the dictionary object
-dictionary = PyDictionary()
-
 # Sidebar for API Key
 user_api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password", key="api_key")
 if user_api_key:
     openai.api_key = user_api_key
 
-# OpenAI Function
-def get_openai_response(prompt):
+# OpenAI Function to get definition
+def get_openai_definition(word):
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": prompt}],
-            max_tokens=300,
-            temperature=0.8,
+        response = openai.Completion.create(
+            model="text-davinci-003",
+            prompt=f"Provide a definition for the word '{word}'",
+            max_tokens=100,
+            temperature=0.7
         )
-        return response.choices[0].message["content"].strip()
+        return response.choices[0].text.strip()
     except Exception as e:
         return f"Error: {str(e)}"
-    
+
 # Spelling correction function
 def correct_spelling(text, lang):
     spell = SpellChecker(language=lang)
@@ -75,8 +71,8 @@ def get_synonyms_and_definitions(word, lang):
     else:
         return "Language not supported"
     
-    # Fetch definitions
-    definitions = [get_first_definition(dictionary.meaning(syn)) for syn in synonyms]
+    # Fetch definitions using OpenAI
+    definitions = [get_openai_definition(syn) for syn in synonyms]
     data = [{"Synonym": syn, "Definition": defn} for syn, defn in zip(synonyms, definitions)]
     
     return pd.DataFrame(data)
@@ -107,13 +103,6 @@ def get_synonyms_thai(word):
     while len(synonyms) < 3:
         synonyms.append(word)  # Add the original word as a fallback
     return synonyms
-
-# Definition retrieval
-def get_first_definition(defn):
-    if defn:
-        for pos in defn.values():
-            return pos[0]
-    return "No definition available"
 
 # User input
 user_input = st.text_area("Enter the word or phrase:")
