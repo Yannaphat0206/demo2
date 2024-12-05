@@ -74,11 +74,13 @@ def get_synonyms_nltk_english(word):
             synonyms.add(lemma.name())
     return list(synonyms)
 
+# Synonyms and IPA for English
 def get_ipa_english(word):
     ipa_list = pronouncing.phones_for_word(word)
     if ipa_list:
-        return pronouncing.ipa(ipa_list[0])
+        return ipa_list[0]  # ให้ผลลัพธ์เป็นตัวแรกในรายการ
     return "IPA not found"
+
 
 # Synonyms and IPA for French
 def get_synonyms_french(word):
