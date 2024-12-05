@@ -7,6 +7,7 @@ from spellchecker import SpellChecker
 from pythainlp.spell import correct as thai_correct
 import nltk
 from nltk.corpus import wordnet
+import requests
 
 # Ensure necessary NLTK data is available
 nltk.download('wordnet')
@@ -43,20 +44,6 @@ def detect_language_openai(text):
         )
         language = response['choices'][0]['message']['content'].strip()
         return language
-    except Exception as e:
-        return f"Error: {str(e)}"
-
-# Function to get OpenAI definition while ignoring articles (like "le", "la", etc. for French)
-def get_openai_definition_ignore_articles(word):
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "system", "content": "You are a helpful assistant."},
-                      {"role": "user", "content": f"Ignore articles like 'le', 'la', 'the', and provide a definition for the core word: '{word}'"}],
-            max_tokens=100,
-            temperature=0.7
-        )
-        return response['choices'][0]['message']['content'].strip()
     except Exception as e:
         return f"Error: {str(e)}"
 
@@ -114,13 +101,18 @@ def get_synonyms_nltk_english(word):
         synonyms.add(word)
     return list(synonyms)
 
-# Placeholder for French synonyms (improve this with actual logic)
+# Function to get French synonyms using WordReference API (example)
 def get_synonyms_french(word):
-    return get_synonyms_nltk_english(word)  # Using NLTK English synonyms for French as placeholder
+    url = f"https://api.wordreference.com/0.8/your_api_key/json/fren/en/{word}"  # Replace with your actual API key
+    response = requests.get(url).json()
+    if 'term0' in response:
+        return [entry['term'] for entry in response['term0']['entries']]
+    return [word]  # Default to the word itself if no synonyms found
 
-# Placeholder for Thai synonyms (improve this with actual logic)
+# Function to get Thai synonyms using PyThaiNLP
 def get_synonyms_thai(word):
-    return get_synonyms_nltk_english(word)  # Using NLTK English synonyms for Thai as placeholder
+    # You may need to enhance this function for real synonym handling.
+    return [thai_correct(word)]  # Placeholder; integrate more sophisticated logic as needed
 
 # Function to determine part of speech and gender for French words
 def get_pos_and_gender(word, lang):
