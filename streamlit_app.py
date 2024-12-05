@@ -7,6 +7,7 @@ from PyDictionary import PyDictionary
 import pronouncing
 from spellchecker import SpellChecker
 from pythainlp.spell import correct as thai_correct
+from nltk.corpus import wordnet
 
 # Initialize Dictionary and Translator
 dictionary = PyDictionary()
@@ -38,15 +39,12 @@ def get_ipa(word):
         return "IPA not found"
 
 # Synonym, IPA, and Definition Retrieval Function
-def get_synonyms_and_ipa(word):
-    synonyms = dictionary.synonym(word)
-    if not synonyms:
-        st.warning(f"No synonyms found for '{word}'.")
-        return pd.DataFrame([{"Synonym": "N/A", "IPA": "N/A", "Definition": "N/A"}])
-    ipa_transcriptions = [get_ipa(syn) for syn in synonyms]
-    definitions = [dictionary.meaning(syn) for syn in synonyms]
-    data = [{"Synonym": syn, "IPA": ipa, "Definition": get_first_definition(defn)} for syn, ipa, defn in zip(synonyms, ipa_transcriptions, definitions)]
-    return pd.DataFrame(data)
+def get_synonyms_nltk(word):
+    synonyms = set()
+    for syn in wordnet.synsets(word):
+        for lemma in syn.lemmas():
+            synonyms.add(lemma.name())
+    return list(synonyms)
 
 
 # Extract the first definition from dictionary output
