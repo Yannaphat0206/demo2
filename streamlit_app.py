@@ -35,8 +35,10 @@ def get_openai_response(prompt):
 def get_ipa(word):
     ipa_list = pronouncing.phones_for_word(word)
     if ipa_list:
-        return pronouncing.ipa(ipa_list[0])
+        # Return ARPAbet as a placeholder for IPA
+        return ipa_list[0]  # If you have an ARPAbet to IPA conversion, apply it here
     return "IPA not found"
+
 
 # Synonyms, IPA, and Definitions Retrieval
 def get_synonyms_and_ipa(word):
