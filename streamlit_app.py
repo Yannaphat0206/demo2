@@ -42,8 +42,8 @@ def correct_spelling(text, lang):
 
 
 # Title for the app
-st.title("Translator with Synonym, Definition, and Spelling Correction")
-st.markdown("Input your vocabulary, and we'll provide translations, synonyms, definitions, and spelling correction.")
+st.title("Translator with Synonym and Definition")
+st.markdown("Input your vocabulary, and we'll provide translations, synonyms, and definitions.")
 
 # Translation function
 def translate_input(user_input, detected_lang):
@@ -64,8 +64,24 @@ def translate_input(user_input, detected_lang):
         return {"Error": f"Translation Error: {str(e)}"}
     return translations
 
+# Function to handle synonyms for different languages
+def get_synonyms_and_definitions(word, lang):
+    if lang == 'en':
+        synonyms = get_synonyms_nltk_english(word)
+    elif lang == 'fr':
+        synonyms = get_synonyms_french(word)
+    elif lang == 'th':
+        synonyms = get_synonyms_thai(word)
+    else:
+        return "Language not supported"
+    
+    # Fetch definitions
+    definitions = [get_first_definition(dictionary.meaning(syn)) for syn in synonyms]
+    data = [{"Synonym": syn, "Definition": defn} for syn, defn in zip(synonyms, definitions)]
+    
+    return pd.DataFrame(data)
 
-# Synonyms for English
+# Updated synonym and definition functions (examples, you can customize)
 def get_synonyms_nltk_english(word):
     synonyms = set()
     for syn in wordnet.synsets(word):
@@ -91,23 +107,6 @@ def get_synonyms_thai(word):
     while len(synonyms) < 3:
         synonyms.append(word)  # Add the original word as a fallback
     return synonyms
-
-# Function to handle synonyms for different languages
-def get_synonyms_and_definitions(word, lang):
-    if lang == 'en':
-        synonyms = get_synonyms_nltk_english(word)
-    elif lang == 'fr':
-        synonyms = get_synonyms_french(word)
-    elif lang == 'th':
-        synonyms = get_synonyms_thai(word)
-    else:
-        return "Language not supported"
-    
-    # Fetch definitions
-    definitions = [get_first_definition(dictionary.meaning(syn)) for syn in synonyms]
-    data = [{"Synonym": syn, "Definition": defn} for syn, defn in zip(synonyms, definitions)]
-    
-    return pd.DataFrame(data)
 
 # Definition retrieval
 def get_first_definition(defn):
