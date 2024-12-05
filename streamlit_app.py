@@ -49,8 +49,7 @@ st.markdown("Input your vocabulary, and we'll provide translations, synonyms, de
 # User input
 user_input = st.text_area("Enter the word or phrase:")
 
-if user_input:
-    # Detect the language
+if user_input.strip():  # Ensure non-empty input
     detected_lang = langid.classify(user_input)[0]
     st.write(f"Detected Language: {detected_lang.upper()}")
 
@@ -66,85 +65,10 @@ if user_input:
             st.write(f"Corrected Spelling: {corrected_word}")
             user_input = corrected_word
 
-# Synonyms and IPA for English
-def get_synonyms_nltk_english(word):
-    synonyms = set()
-    for syn in wordnet.synsets(word):
-        for lemma in syn.lemmas():
-            synonyms.add(lemma.name())
-    return list(synonyms)
-
-def get_ipa_english(word):
-    ipa_list = pronouncing.phones_for_word(word)
-    if ipa_list:
-        return pronouncing.ipa(ipa_list[0])
-    return "IPA not found"
-
-# Synonyms and IPA for French
-def get_synonyms_french(word):
-    return [word]  # Replace with actual API or dictionary call for French synonyms
-
-def get_ipa_french(word):
-    return "IPA for French not implemented"  # Replace with actual IPA retrieval
-
-# Synonyms and IPA for Thai
-def get_synonyms_thai(word):
-    return [word]  # Replace with actual API or dictionary call for Thai synonyms
-
-def get_ipa_thai(word):
-    return "IPA for Thai not implemented"  # Replace with actual IPA retrieval
-
-# Function to handle synonyms and IPA for different languages
-def get_synonyms_and_ipa(word, lang):
-    if lang == 'en':
-        synonyms = get_synonyms_nltk_english(word)
-        ipa_transcriptions = [get_ipa_english(syn) for syn in synonyms]
-    elif lang == 'fr':
-        synonyms = get_synonyms_french(word)
-        ipa_transcriptions = [get_ipa_french(syn) for syn in synonyms]
-    elif lang == 'th':
-        synonyms = get_synonyms_thai(word)
-        ipa_transcriptions = [get_ipa_thai(syn) for syn in synonyms]
-    else:
-        return "Language not supported"
-    
-    # Fetch definitions
-    definitions = [get_first_definition(dictionary.meaning(syn)) for syn in synonyms]
-    data = [{"Synonym": syn, "IPA": ipa, "Definition": defn} for syn, ipa, defn in zip(synonyms, ipa_transcriptions, definitions)]
-    
-    return pd.DataFrame(data)
-
-# Definition retrieval
-def get_first_definition(defn):
-    if defn:
-        for pos in defn.values():
-            return pos[0]
-    return "No definition available"
-
-# Translation function
-def translate_input(user_input, detected_lang):
-    translations = {}
-    if detected_lang == "fr":
-        translations["English"] = GoogleTranslator(source="fr", target="en").translate(user_input)
-        translations["Thai"] = GoogleTranslator(source="fr", target="th").translate(user_input)
-    elif detected_lang == "en":
-        translations["French"] = GoogleTranslator(source="en", target="fr").translate(user_input)
-        translations["Thai"] = GoogleTranslator(source="en", target="th").translate(user_input)
-    elif detected_lang == "th":
-        translations["English"] = GoogleTranslator(source="th", target="en").translate(user_input)
-        translations["French"] = GoogleTranslator(source="th", target="fr").translate(user_input)
-    else:
-        return "Language not supported for translation."
-    
-    return translations
-
-# Translate the input and display the result
-if user_input:
-    # Translate the input
+    # Translate the input and display the result
     translations = translate_input(user_input, detected_lang)
 
     if translations:
-        st.write(f"Detected Language: {detected_lang.upper()}")
         st.write("Translations:")
         for lang, translation in translations.items():
             st.write(f"- {lang}: {translation}")
@@ -164,3 +88,31 @@ if user_input:
             st.write("Thai Synonyms, IPA, and Definitions:")
             thai_df = get_synonyms_and_ipa(translations["Thai"], 'th')
             st.dataframe(thai_df)
+else:
+    st.warning("Please enter a valid word or phrase to process.")
+
+# Translation function
+def translate_input(user_input, detected_lang):
+    # Validate input before attempting translation
+    if not user_input or len(user_input.strip()) == 0:
+        return "Invalid input: Please enter a valid word or phrase."
+
+    translations = {}
+    try:
+        if detected_lang == "fr":
+            translations["English"] = GoogleTranslator(source="fr", target="en").translate(user_input)
+            translations["Thai"] = GoogleTranslator(source="fr", target="th").translate(user_input)
+        elif detected_lang == "en":
+            translations["French"] = GoogleTranslator(source="en", target="fr").translate(user_input)
+            translations["Thai"] = GoogleTranslator(source="en", target="th").translate(user_input)
+        elif detected_lang == "th":
+            translations["English"] = GoogleTranslator(source="th", target="en").translate(user_input)
+            translations["French"] = GoogleTranslator(source="th", target="fr").translate(user_input)
+        else:
+            return "Language not supported for translation."
+    except Exception as e:
+        return f"Translation Error: {str(e)}"
+    
+    return translations
+
+# Synonyms and IPA retrieval functions...
