@@ -15,19 +15,22 @@ user_api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password
 if user_api_key:
     openai.api_key = user_api_key
 
-# OpenAI Function to get definition
-# OpenAI Function to get definition (updated)
+# OpenAI Function to get definition using ChatGPT model
 def get_openai_definition(word):
     try:
-        response = openai.Completion.create(
-            model="gpt-3.5-turbo",  # Use the newer GPT-3.5 model
-            prompt=f"Provide a definition for the word '{word}'",
-            max_tokens=300,
-            temperature=0.8
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # or "gpt-4" if you have access
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": f"Provide a definition for the word '{word}'"}
+            ],
+            max_tokens=100,
+            temperature=0.7
         )
-        return response.choices[0].text.strip()
+        return response['choices'][0]['message']['content'].strip()
     except Exception as e:
         return f"Error: {str(e)}"
+
 
 
 # Spelling correction function
