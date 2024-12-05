@@ -2,7 +2,6 @@ import requests
 import openai
 import streamlit as st
 import langid
-import pandas as pd
 from deep_translator import GoogleTranslator
 from PyDictionary import PyDictionary
 import pronouncing
@@ -39,9 +38,8 @@ def get_ipa(word):
 # Synonym and IPA Retrieval Function
 def get_synonyms_and_ipa(word, lang="en"):
     synonyms = dictionary.synonym(word) or []
-    ipa_transcriptions = [get_ipa(syn) for syn in synonyms[:3]]
-    data = [{"Synonym": syn, "IPA": ipa} for syn, ipa in zip(synonyms[:3], ipa_transcriptions)]
-    return pd.DataFrame(data)
+    ipa_transcriptions = [get_ipa(syn) for syn in synonyms[:3]]  # Limit to 3 for performance
+    return [{"synonym": syn, "ipa": ipa} for syn, ipa in zip(synonyms[:3], ipa_transcriptions)]
 
 # App Title
 st.title("Translator and Synonym Finder with IPA")
@@ -59,24 +57,27 @@ if user_input:
         translation_fr_to_en = GoogleTranslator(source='fr', target='en').translate(user_input)
         st.write(f"Translation (French to English): {translation_fr_to_en}")
         
-        df_synonyms_ipa = get_synonyms_and_ipa(translation_fr_to_en)
+        synonyms_ipa = get_synonyms_and_ipa(translation_fr_to_en)
         st.write("Synonyms and IPA Transcription (French -> English):")
-        st.dataframe(df_synonyms_ipa)  # Display the DataFrame as a table
+        for syn in synonyms_ipa:
+            st.write(f"- {syn['synonym']} ({syn['ipa']})")
 
     # Handle English Input
     elif check_lang[0] == "en":
-        df_synonyms_ipa = get_synonyms_and_ipa(user_input)
         st.write("Synonyms and IPA Transcription (English):")
-        st.dataframe(df_synonyms_ipa)  # Display the DataFrame as a table
+        synonyms_ipa = get_synonyms_and_ipa(user_input)
+        for syn in synonyms_ipa:
+            st.write(f"- {syn['synonym']} ({syn['ipa']})")
 
     # Handle Thai Input
     elif check_lang[0] == "th":
         translation_th_to_en = GoogleTranslator(source='th', target='en').translate(user_input)
         st.write(f"Translation (Thai to English): {translation_th_to_en}")
         
-        df_synonyms_ipa = get_synonyms_and_ipa(translation_th_to_en)
+        synonyms_ipa = get_synonyms_and_ipa(translation_th_to_en)
         st.write("Synonyms and IPA Transcription (Thai -> English):")
-        st.dataframe(df_synonyms_ipa)  # Display the DataFrame as a table
+        for syn in synonyms_ipa:
+            st.write(f"- {syn['synonym']} ({syn['ipa']})")
     
     else:
         st.write("Language not supported for synonym and IPA feature.")
