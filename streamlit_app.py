@@ -56,6 +56,18 @@ def detect_language_openai(text):
     except Exception as e:
         return f"Error: {str(e)}"
 
+def preprocess_input(text, lang):
+    articles = {
+        "fr": ["le", "la", "les", "un", "une", "des", "du", "de", "l'", "d'"],
+        "en": ["the", "a", "an"],
+        "th": []  # Thai does not use articles in the same way.
+    }
+    words = text.split()
+    if lang in articles and words[0].lower() in articles[lang]:
+        words = words[1:]  # Remove the first word if it's an article
+    return " ".join(words)
+
+
 # Title for the app
 st.title("Translator with Synonym and Definition")
 st.markdown("Input your vocabulary, and we'll provide translations, synonyms, and definitions.")
