@@ -2,5 +2,5 @@ streamlit
 requests
 openai==0.28
 langid
-googletrans==4.0.0-rc1
+deep-translator
 translate
