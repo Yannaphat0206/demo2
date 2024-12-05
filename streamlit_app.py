@@ -11,12 +11,12 @@ user_api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password
 if user_api_key:
     openai.api_key = user_api_key  # Store the API key to use in requests
 
-# Function to interact with OpenAI
+# Function to interact with OpenAI (updated for new model)
 def get_openai_response(prompt):
     try:
         # Use the OpenAI API to get a response
         response = openai.Completion.create(
-            engine="text-davinci-003",  # Use a GPT model of your choice
+            model="gpt-3.5-turbo",  # Updated model name (replace text-davinci-003)
             prompt=prompt,
             max_tokens=100,  # Limit response length
             n=1,  # Number of responses
@@ -26,6 +26,7 @@ def get_openai_response(prompt):
         return response.choices[0].text.strip()
     except Exception as e:
         return f"Error: {str(e)}"
+
 
 # Title for the app
 st.title("Translator and OpenAI Integration")
