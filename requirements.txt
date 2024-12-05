@@ -4,5 +4,5 @@ openai==0.28
 langid
 deep-translator
 translate
-spellchecker
+pyspellchecker
 pythainlp
