@@ -31,8 +31,6 @@ def get_openai_definition(word):
     except Exception as e:
         return f"Error: {str(e)}"
 
-
-
 # Spelling correction function
 def correct_spelling(text, lang):
     spell = SpellChecker(language=lang)
@@ -41,6 +39,22 @@ def correct_spelling(text, lang):
     corrected_text = " ".join(corrected_words)
     return corrected_text
 
+# Function to detect language using OpenAI
+def detect_language_openai(text):
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # or "gpt-4"
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": f"Detect the language of the following text: '{text}'."}
+            ],
+            max_tokens=50,
+            temperature=0.5
+        )
+        language = response['choices'][0]['message']['content'].strip()
+        return language
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 # Title for the app
 st.title("Translator with Synonym and Definition")
@@ -93,18 +107,16 @@ def get_synonyms_nltk_english(word):
         synonyms.add(word)  # Add the original word as a fallback
     return list(synonyms)
 
-# Synonyms for French
+# Synonyms for French (simplified for now)
 def get_synonyms_french(word):
-    synonyms = [word]  # Example, you should replace this with actual French synonyms
-    # Ensure at least 3 synonyms
+    synonyms = [word]  # Placeholder for actual synonyms
     while len(synonyms) < 3:
         synonyms.append(word)  # Add the original word as a fallback
     return synonyms
 
-# Synonyms for Thai
+# Synonyms for Thai (simplified for now)
 def get_synonyms_thai(word):
-    synonyms = [word]  # Example, you should replace this with actual Thai synonyms
-    # Ensure at least 3 synonyms
+    synonyms = [word]  # Placeholder for actual synonyms
     while len(synonyms) < 3:
         synonyms.append(word)  # Add the original word as a fallback
     return synonyms
