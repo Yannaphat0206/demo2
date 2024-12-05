@@ -4,7 +4,6 @@ import langid
 import pandas as pd
 from deep_translator import GoogleTranslator
 from PyDictionary import PyDictionary
-import pronouncing
 from spellchecker import SpellChecker
 from pythainlp.spell import correct as thai_correct
 import nltk
@@ -66,53 +65,47 @@ def translate_input(user_input, detected_lang):
     return translations
 
 
-# Synonyms and IPA for English
+# Synonyms for English
 def get_synonyms_nltk_english(word):
     synonyms = set()
     for syn in wordnet.synsets(word):
         for lemma in syn.lemmas():
             synonyms.add(lemma.name())
+    # Ensure at least 3 synonyms
+    while len(synonyms) < 3:
+        synonyms.add(word)  # Add the original word as a fallback
     return list(synonyms)
 
-# Synonyms and IPA for English
-def get_ipa_english(word):
-    ipa_list = pronouncing.phones_for_word(word)
-    if ipa_list:
-        return ipa_list[0]  # ให้ผลลัพธ์เป็นตัวแรกในรายการ
-    return "IPA not found"
-
-
-# Synonyms and IPA for French
+# Synonyms for French
 def get_synonyms_french(word):
-    return [word]  # Replace with actual API or dictionary call for French synonyms
+    synonyms = [word]  # Example, you should replace this with actual French synonyms
+    # Ensure at least 3 synonyms
+    while len(synonyms) < 3:
+        synonyms.append(word)  # Add the original word as a fallback
+    return synonyms
 
-def get_ipa_french(word):
-    return "IPA for French not implemented"  # Replace with actual IPA retrieval
-
-# Synonyms and IPA for Thai
+# Synonyms for Thai
 def get_synonyms_thai(word):
-    return [word]  # Replace with actual API or dictionary call for Thai synonyms
+    synonyms = [word]  # Example, you should replace this with actual Thai synonyms
+    # Ensure at least 3 synonyms
+    while len(synonyms) < 3:
+        synonyms.append(word)  # Add the original word as a fallback
+    return synonyms
 
-def get_ipa_thai(word):
-    return "IPA for Thai not implemented"  # Replace with actual IPA retrieval
-
-# Function to handle synonyms and IPA for different languages
-def get_synonyms_and_ipa(word, lang):
+# Function to handle synonyms for different languages
+def get_synonyms_and_definitions(word, lang):
     if lang == 'en':
         synonyms = get_synonyms_nltk_english(word)
-        ipa_transcriptions = [get_ipa_english(syn) for syn in synonyms]
     elif lang == 'fr':
         synonyms = get_synonyms_french(word)
-        ipa_transcriptions = [get_ipa_french(syn) for syn in synonyms]
     elif lang == 'th':
         synonyms = get_synonyms_thai(word)
-        ipa_transcriptions = [get_ipa_thai(syn) for syn in synonyms]
     else:
         return "Language not supported"
     
     # Fetch definitions
     definitions = [get_first_definition(dictionary.meaning(syn)) for syn in synonyms]
-    data = [{"Synonym": syn, "IPA": ipa, "Definition": defn} for syn, ipa, defn in zip(synonyms, ipa_transcriptions, definitions)]
+    data = [{"Synonym": syn, "Definition": defn} for syn, defn in zip(synonyms, definitions)]
     
     return pd.DataFrame(data)
 
@@ -150,21 +143,20 @@ if user_input.strip():  # Ensure non-empty input
         for lang, translation in translations.items():
             st.write(f"- {lang}: {translation}")
         
-        # Get synonyms, IPA, and definitions for each language
+        # Get synonyms and definitions for each language
         if 'English' in translations:
-            st.write("English Synonyms, IPA, and Definitions:")
-            english_df = get_synonyms_and_ipa(translations["English"], 'en')
+            st.write("English Synonyms and Definitions:")
+            english_df = get_synonyms_and_definitions(translations["English"], 'en')
             st.dataframe(english_df)
         
         if 'French' in translations:
-            st.write("French Synonyms, IPA, and Definitions:")
-            french_df = get_synonyms_and_ipa(translations["French"], 'fr')
+            st.write("French Synonyms and Definitions:")
+            french_df = get_synonyms_and_definitions(translations["French"], 'fr')
             st.dataframe(french_df)
         
         if 'Thai' in translations:
-            st.write("Thai Synonyms, IPA, and Definitions:")
-            thai_df = get_synonyms_and_ipa(translations["Thai"], 'th')
+            st.write("Thai Synonyms and Definitions:")
+            thai_df = get_synonyms_and_definitions(translations["Thai"], 'th')
             st.dataframe(thai_df)
 else:
     st.warning("Please enter a valid word or phrase to process.")
-
