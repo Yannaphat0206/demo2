@@ -8,3 +8,4 @@ pyspellchecker
 pythainlp
 PyDictionary
 pronouncing
+nltk
