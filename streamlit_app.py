@@ -7,6 +7,7 @@ from spellchecker import SpellChecker
 from pythainlp.spell import correct as thai_correct
 import nltk
 from nltk.corpus import wordnet
+
 nltk.download('wordnet')
 nltk.download('omw-1.4')
 
@@ -15,69 +16,45 @@ user_api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password
 if user_api_key:
     openai.api_key = user_api_key
 
-# OpenAI Function to get definition using ChatGPT model
-def get_openai_definition(word):
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # or "gpt-4" if you have access
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": f"Provide a definition for the word '{word}'"}
-            ],
-            max_tokens=100,
-            temperature=0.7
-        )
-        return response['choices'][0]['message']['content'].strip()
-    except Exception as e:
-        return f"Error: {str(e)}"
+# Preprocessing function to remove articles
+def remove_articles(text, lang):
+    articles = {
+        "fr": ["le", "la", "les", "un", "une", "des", "du", "de", "de la", "de l'", "l'"],
+        "en": ["the", "a", "an"],
+        "th": []  # Thai does not use articles
+    }
+    words = text.split()
+    filtered_words = [word for word in words if word.lower() not in articles.get(lang, [])]
+    return " ".join(filtered_words)
 
-# Spelling correction function
-def correct_spelling(text, lang):
-    spell = SpellChecker(language=lang)
-    words = text.split()  # Split the input into words
-    corrected_words = [spell.correction(word) for word in words]
-    corrected_text = " ".join(corrected_words)
-    return corrected_text
-
-# Function to detect language using OpenAI
-def detect_language_openai(text):
+# OpenAI Function to get batch definitions using ChatGPT model
+@st.cache_data
+def get_openai_definitions_batch(words):
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # or "gpt-4"
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": f"Detect the language of the following text: '{text}'."}
-            ],
-            max_tokens=50,
-            temperature=0.5
-        )
-        language = response['choices'][0]['message']['content'].strip()
-        return language
-    except Exception as e:
-        return f"Error: {str(e)}"
-
-def get_openai_definition_ignore_articles(word):
-    try:
+        prompt = "Provide definitions for the following words:\n" + "\n".join(words)
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": f"Ignore articles like 'le', 'la', 'the', and provide a definition for the core word: '{word}'"}
+                {"role": "user", "content": prompt}
             ],
-            max_tokens=100,
+            max_tokens=500,
             temperature=0.7
         )
-        return response['choices'][0]['message']['content'].strip()
+        definitions = response['choices'][0]['message']['content'].strip().split("\n")
+        return definitions
     except Exception as e:
-        return f"Error: {str(e)}"
+        return [f"Error: {str(e)}"]
 
-
-
-# Title for the app
-st.title("Translator with Synonym and Definition")
-st.markdown("Input your vocabulary, and we'll provide translations, synonyms, and definitions.")
+# Spelling correction function
+def correct_spelling(text, lang):
+    spell = SpellChecker(language=lang)
+    words = text.split()
+    corrected_words = [spell.correction(word) for word in words]
+    return " ".join(corrected_words)
 
 # Translation function
+@st.cache_data
 def translate_input(user_input, detected_lang):
     translations = {}
     try:
@@ -96,7 +73,7 @@ def translate_input(user_input, detected_lang):
         return {"Error": f"Translation Error: {str(e)}"}
     return translations
 
-# Function to handle synonyms for different languages
+# Function to handle synonyms and definitions for different languages
 def get_synonyms_and_definitions(word, lang):
     if lang == 'en':
         synonyms = get_synonyms_nltk_english(word)
@@ -107,58 +84,64 @@ def get_synonyms_and_definitions(word, lang):
     else:
         return "Language not supported"
     
-    # Fetch definitions using OpenAI
-    definitions = [get_openai_definition(syn) for syn in synonyms]
+    definitions = get_openai_definitions_batch(synonyms)
     data = [{"Synonym": syn, "Definition": defn} for syn, defn in zip(synonyms, definitions)]
     
     return pd.DataFrame(data)
 
-# Updated synonym and definition functions (examples, you can customize)
+# Synonyms for English using NLTK
 def get_synonyms_nltk_english(word):
     synonyms = set()
     for syn in wordnet.synsets(word):
         for lemma in syn.lemmas():
+            if len(synonyms) >= 5:  # Limit to 5 synonyms for performance
+                break
             synonyms.add(lemma.name())
-    # Ensure at least 3 synonyms
-    while len(synonyms) < 3:
-        synonyms.add(word)  # Add the original word as a fallback
     return list(synonyms)
 
-# Synonyms for French (simplified for now)
+# Synonyms for French (placeholder)
 def get_synonyms_french(word):
     synonyms = [word]  # Placeholder for actual synonyms
     while len(synonyms) < 3:
-        synonyms.append(word)  # Add the original word as a fallback
+        synonyms.append(word)
     return synonyms
 
-# Synonyms for Thai (simplified for now)
+# Synonyms for Thai (placeholder)
 def get_synonyms_thai(word):
-    synonyms = [word]  # Placeholder for actual synonyms
+    synonyms = [word]
     while len(synonyms) < 3:
-        synonyms.append(word)  # Add the original word as a fallback
+        synonyms.append(word)
     return synonyms
+
+# Title for the app
+st.title("Translator with Synonym and Definition")
+st.markdown("Input your vocabulary, and we'll provide translations, synonyms, and definitions.")
 
 # User input
 user_input = st.text_area("Enter the word or phrase:")
 
-if user_input.strip():  # Ensure non-empty input
+if user_input.strip():
     detected_lang = langid.classify(user_input)[0]
     st.write(f"Detected Language: {detected_lang.upper()}")
 
+    # Remove articles
+    cleaned_input = remove_articles(user_input, detected_lang)
+    st.write(f"Processed Word Without Articles: {cleaned_input}")
+
     # Spelling correction
     if detected_lang in ["en", "fr"]:
-        corrected_word = correct_spelling(user_input, detected_lang)
-        if corrected_word != user_input:
+        corrected_word = correct_spelling(cleaned_input, detected_lang)
+        if corrected_word != cleaned_input:
             st.write(f"Corrected Spelling: {corrected_word}")
-            user_input = corrected_word
+            cleaned_input = corrected_word
     elif detected_lang == "th":
-        corrected_word = thai_correct(user_input)
-        if corrected_word != user_input:
+        corrected_word = thai_correct(cleaned_input)
+        if corrected_word != cleaned_input:
             st.write(f"Corrected Spelling: {corrected_word}")
-            user_input = corrected_word
+            cleaned_input = corrected_word
 
     # Translate the input and display the result
-    translations = translate_input(user_input, detected_lang)
+    translations = translate_input(cleaned_input, detected_lang)
 
     if translations:
         st.write("Translations:")
