@@ -8,6 +8,7 @@ import pronouncing
 from spellchecker import SpellChecker
 from pythainlp.spell import correct as thai_correct
 import nltk
+from nltk.corpus import wordnet
 nltk.download('wordnet')
 nltk.download('omw-1.4') 
 
