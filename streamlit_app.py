@@ -16,17 +16,19 @@ if user_api_key:
     openai.api_key = user_api_key
 
 # OpenAI Function to get definition
+# OpenAI Function to get definition (updated)
 def get_openai_definition(word):
     try:
         response = openai.Completion.create(
-            model="text-davinci-003",
+            model="gpt-3.5-turbo",  # Use the newer GPT-3.5 model
             prompt=f"Provide a definition for the word '{word}'",
-            max_tokens=100,
-            temperature=0.7
+            max_tokens=300,
+            temperature=0.8
         )
         return response.choices[0].text.strip()
     except Exception as e:
         return f"Error: {str(e)}"
+
 
 # Spelling correction function
 def correct_spelling(text, lang):
