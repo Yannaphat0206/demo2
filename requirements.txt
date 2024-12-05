@@ -2,5 +2,5 @@ streamlit
 requests
 openai
 langid
-googletrans 
+googletrans-python
 translate
