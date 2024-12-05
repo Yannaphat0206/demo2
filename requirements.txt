@@ -6,3 +6,5 @@ deep-translator
 translate
 pyspellchecker
 pythainlp
+PyDictionary
+pronouncing

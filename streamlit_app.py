@@ -2,103 +2,81 @@ import requests
 import openai
 import streamlit as st
 import langid
+import pandas as pd
 from deep_translator import GoogleTranslator
-from spellchecker import SpellChecker
-from pythainlp.spell import correct as thai_correct
+from PyDictionary import PyDictionary
+import pronouncing
 
-# Sidebar input to accept the OpenAI API key
+# Initialize Dictionary and Translator
+dictionary = PyDictionary()
+
+# Sidebar for API Key
 user_api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password", key="api_key")
-
-# Set the OpenAI API key (if provided by user)
 if user_api_key:
     openai.api_key = user_api_key
 
-# Function to interact with OpenAI for synonyms and definitions
+# OpenAI Function
 def get_openai_response(prompt):
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=200,
-            temperature=0.8
+            messages=[{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": prompt}],
+            max_tokens=300,
+            temperature=0.8,
         )
         return response.choices[0].message["content"].strip()
     except Exception as e:
         return f"Error: {str(e)}"
 
-# Function to correct spelling for French and English
-def correct_spelling(text, lang):
-    if lang == "fr":
-        spell = SpellChecker(language='fr')
+# IPA Fetching Function
+def get_ipa(word):
+    ipa_list = pronouncing.phones_for_word(word)
+    if ipa_list:
+        return pronouncing.ipa(ipa_list[0])
     else:
-        spell = SpellChecker(language='en')
-    corrected_word = spell.correction(text)
-    return corrected_word
+        return "IPA not found"
 
-# Title for the app
-st.title("Translator with Synonym, Definition, and Spelling Correction")
-st.markdown("Input your vocabulary, and we'll provide translations, synonyms, definitions, and spelling correction.")
+# Synonym and IPA Retrieval Function
+def get_synonyms_and_ipa(word, lang="en"):
+    synonyms = dictionary.synonym(word) or []
+    ipa_transcriptions = [get_ipa(syn) for syn in synonyms[:3]]
+    data = [{"Synonym": syn, "IPA": ipa} for syn, ipa in zip(synonyms[:3], ipa_transcriptions)]
+    return pd.DataFrame(data)
 
-# User input
+# App Title
+st.title("Translator and Synonym Finder with IPA")
+st.markdown("Input your word, and we'll provide translations, synonyms, and their IPA.")
+
+# User Input
 user_input = st.text_area("Enter the word or phrase:")
 
+# Detect Language
+check_lang = langid.classify(user_input)
+
 if user_input:
-    # Detect the language
-    detected_lang = langid.classify(user_input)[0]
-    st.write(f"Detected Language: {detected_lang.upper()}")
-
-    # Spelling correction
-    if detected_lang in ["en", "fr"]:
-        corrected_word = correct_spelling(user_input, detected_lang)
-        if corrected_word != user_input:
-            st.write(f"Corrected Spelling: {corrected_word}")
-            user_input = corrected_word
-    elif detected_lang == "th":
-        corrected_word = thai_correct(user_input)
-        if corrected_word != user_input:
-            st.write(f"Corrected Spelling: {corrected_word}")
-            user_input = corrected_word
-
-    # Translation and Synonym/Definition handling
-    if detected_lang == "fr":
-        # Translate to English and Thai
+    # Handle French Input
+    if check_lang[0] == "fr":
         translation_fr_to_en = GoogleTranslator(source='fr', target='en').translate(user_input)
-        translation_fr_to_th = GoogleTranslator(source='en', target='th').translate(translation_fr_to_en)
         st.write(f"Translation (French to English): {translation_fr_to_en}")
-        st.write(f"Translation (French to Thai): {translation_fr_to_th}")
+        
+        df_synonyms_ipa = get_synonyms_and_ipa(translation_fr_to_en)
+        st.write("Synonyms and IPA Transcription (French -> English):")
+        st.dataframe(df_synonyms_ipa)  # Display the DataFrame as a table
 
-        # Get OpenAI response
-        openai_prompt = f"Provide a synonym and definition for '{translation_fr_to_en}' in English, French, and Thai."
-        openai_response = get_openai_response(openai_prompt)
-        st.write(f"OpenAI Response: {openai_response}")
+    # Handle English Input
+    elif check_lang[0] == "en":
+        df_synonyms_ipa = get_synonyms_and_ipa(user_input)
+        st.write("Synonyms and IPA Transcription (English):")
+        st.dataframe(df_synonyms_ipa)  # Display the DataFrame as a table
 
-    elif detected_lang == "en":
-        # Translate to French and Thai
-        translation_en_to_fr = GoogleTranslator(source='en', target='fr').translate(user_input)
-        translation_en_to_th = GoogleTranslator(source='en', target='th').translate(user_input)
-        st.write(f"Translation (English to French): {translation_en_to_fr}")
-        st.write(f"Translation (English to Thai): {translation_en_to_th}")
-
-        # Get OpenAI response
-        openai_prompt = f"Provide a synonym and definition for '{user_input}' in English, French, and Thai."
-        openai_response = get_openai_response(openai_prompt)
-        st.write(f"OpenAI Response: {openai_response}")
-
-    elif detected_lang == "th":
-        # Translate to English and French
+    # Handle Thai Input
+    elif check_lang[0] == "th":
         translation_th_to_en = GoogleTranslator(source='th', target='en').translate(user_input)
-        translation_th_to_fr = GoogleTranslator(source='en', target='fr').translate(translation_th_to_en)
         st.write(f"Translation (Thai to English): {translation_th_to_en}")
-        st.write(f"Translation (Thai to French): {translation_th_to_fr}")
-
-        # Get OpenAI response
-        openai_prompt = f"Provide a synonym and definition for '{translation_th_to_en}' in English, French, and Thai."
-        openai_response = get_openai_response(openai_prompt)
-        st.write(f"OpenAI Response: {openai_response}")
-
+        
+        df_synonyms_ipa = get_synonyms_and_ipa(translation_th_to_en)
+        st.write("Synonyms and IPA Transcription (Thai -> English):")
+        st.dataframe(df_synonyms_ipa)  # Display the DataFrame as a table
+    
     else:
-        st.write("This language is not supported.")
-#
+        st.write("Language not supported for synonym and IPA feature.")
