@@ -11,7 +11,20 @@ import nltk
 from nltk.corpus import wordnet
 nltk.download('wordnet')
 nltk.download('omw-1.4') 
+from PyDictionary import PyDictionary
 
+# Instantiate the dictionary object
+dictionary = PyDictionary()
+
+def get_synonyms_and_ipa(word):
+    synonyms = get_synonyms_nltk(word)
+    ipa_transcriptions = [get_ipa(syn) for syn in synonyms]
+    definitions = [get_first_definition(dictionary.meaning(syn)) for syn in synonyms]
+    data = [{"Synonym": syn, "IPA": ipa, "Definition": defn} for syn, ipa, defn in zip(synonyms, ipa_transcriptions, definitions)]
+    return pd.DataFrame(data)
+
+
+dictionary = PyDictionary()  # Instantiate the dictionary object
 
 # Sidebar for API Key
 user_api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password", key="api_key")
@@ -47,6 +60,7 @@ def get_synonyms_and_ipa(word):
     definitions = [get_first_definition(dictionary.meaning(syn)) for syn in synonyms]
     data = [{"Synonym": syn, "IPA": ipa, "Definition": defn} for syn, ipa, defn in zip(synonyms, ipa_transcriptions, definitions)]
     return pd.DataFrame(data)
+
 
 # Synonyms using NLTK
 def get_synonyms_nltk(word):
