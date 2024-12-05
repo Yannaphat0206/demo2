@@ -39,11 +39,15 @@ def get_ipa(word):
 
 # Synonym, IPA, and Definition Retrieval Function
 def get_synonyms_and_ipa(word):
-    synonyms = dictionary.synonym(word) or []
+    synonyms = dictionary.synonym(word)
+    if not synonyms:
+        st.warning(f"No synonyms found for '{word}'.")
+        return pd.DataFrame([{"Synonym": "N/A", "IPA": "N/A", "Definition": "N/A"}])
     ipa_transcriptions = [get_ipa(syn) for syn in synonyms]
     definitions = [dictionary.meaning(syn) for syn in synonyms]
     data = [{"Synonym": syn, "IPA": ipa, "Definition": get_first_definition(defn)} for syn, ipa, defn in zip(synonyms, ipa_transcriptions, definitions)]
     return pd.DataFrame(data)
+
 
 # Extract the first definition from dictionary output
 def get_first_definition(defn):
