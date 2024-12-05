@@ -2,11 +2,7 @@ import requests
 import openai
 import streamlit as st
 import langid
-from googletrans import Translator
-
-
-# Initialize the Translator (for translation tasks)
-translator = Translator()
+from deep_translator import GoogleTranslator  # Import from deep-translator
 
 # Sidebar input to accept the OpenAI API key
 user_api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password", key="api_key")
@@ -43,8 +39,8 @@ check_lang = langid.classify(user_input)
 
 # Example: If the language is French, translate and get OpenAI response for synonym/definition
 if check_lang[0] == "fr":
-    # Translate French to English
-    translation_fr_to_eng = translator.translate(user_input, src="fr", dest="en").text
+    # Translate French to English using deep-translator
+    translation_fr_to_eng = GoogleTranslator(source='fr', target='en').translate(user_input)
     st.write(f"Translation (French to English): {translation_fr_to_eng}")
 
     # Get a definition or a synonym from OpenAI
@@ -61,7 +57,7 @@ elif check_lang[0] == "en":
 
 # Example: If the language is Thai, translate to English, then ask OpenAI for a definition or synonym
 elif check_lang[0] == "th":
-    translation_th_to_en = translator.translate(user_input, src="th", dest="en").text
+    translation_th_to_en = GoogleTranslator(source='th', target='en').translate(user_input)
     st.write(f"Translation (Thai to English): {translation_th_to_en}")
     
     # Ask OpenAI to define or give synonyms for the translated word
