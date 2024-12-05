@@ -94,7 +94,7 @@ def get_synonyms_nltk_english(word):
     synonyms = set()
     for syn in wordnet.synsets(word):
         for lemma in syn.lemmas():
-            if len(synonyms) >= 5:  # Limit to 5 synonyms for performance
+            if len(synonyms) >= 5:
                 break
             synonyms.add(lemma.name())
     return list(synonyms)
@@ -114,7 +114,7 @@ def get_synonyms_thai(word):
     return synonyms
 
 # Title for the app
-st.title("Translator with Synonym and Definition")
+st.title("Translator with Synonyms and Definitions")
 st.markdown("Input your vocabulary, and we'll provide translations, synonyms, and definitions.")
 
 # User input
@@ -140,6 +140,11 @@ if user_input.strip():
             st.write(f"Corrected Spelling: {corrected_word}")
             cleaned_input = corrected_word
 
+    # Synonyms and definitions for the original language
+    st.write(f"{detected_lang.upper()} Synonyms and Definitions:")
+    original_df = get_synonyms_and_definitions(cleaned_input, detected_lang)
+    st.dataframe(original_df)
+
     # Translate the input and display the result
     translations = translate_input(cleaned_input, detected_lang)
 
@@ -147,21 +152,8 @@ if user_input.strip():
         st.write("Translations:")
         for lang, translation in translations.items():
             st.write(f"- {lang}: {translation}")
-        
-        # Get synonyms and definitions for each language
-        if 'English' in translations:
-            st.write("English Synonyms and Definitions:")
-            english_df = get_synonyms_and_definitions(translations["English"], 'en')
-            st.dataframe(english_df)
-        
-        if 'French' in translations:
-            st.write("French Synonyms and Definitions:")
-            french_df = get_synonyms_and_definitions(translations["French"], 'fr')
-            st.dataframe(french_df)
-        
-        if 'Thai' in translations:
-            st.write("Thai Synonyms and Definitions:")
-            thai_df = get_synonyms_and_definitions(translations["Thai"], 'th')
-            st.dataframe(thai_df)
+            st.write(f"{lang} Synonyms and Definitions:")
+            translated_df = get_synonyms_and_definitions(translation, lang.lower()[:2])
+            st.dataframe(translated_df)
 else:
     st.warning("Please enter a valid word or phrase to process.")
