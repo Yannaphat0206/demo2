@@ -61,6 +61,10 @@ def fetch_synonyms(word, lang):
         f"Provide definitions for each synonym as a table with two columns: Synonym and Definition."
     )
     response = get_openai_response(prompt)
+
+    # Log the raw response for debugging
+    st.write(f"Raw API Response for synonyms in {lang}: {response}")
+
     if response:
         # Attempt to parse response into a DataFrame
         try:
@@ -69,10 +73,11 @@ def fetch_synonyms(word, lang):
                 if ":" in line:
                     synonym, definition = line.split(":", 1)
                     data.append({"Synonym": synonym.strip(), "Definition": definition.strip()})
-            return pd.DataFrame(data)
+            if data:
+                return pd.DataFrame(data)
         except Exception:
-            return response  # Return raw response if parsing fails
-    return None
+            pass
+    return response or "No synonyms found."
 
 # Main Application Logic
 user_input = st.text_input("Enter a word or phrase:")
