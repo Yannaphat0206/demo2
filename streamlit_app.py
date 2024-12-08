@@ -18,7 +18,7 @@ if user_api_key:
 st.title("Dictionary for Thai, French, and English")
 st.markdown(
     """Enter a word or phrase in Thai, French, or English to get its definition, translation, and synonyms in different languages. 
-    If french word cannot analyse, please enter the french word with article
+    If french word cannot analyse, please enter the french word with article or subject pronoun.
     """
 )
 
