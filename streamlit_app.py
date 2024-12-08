@@ -15,9 +15,11 @@ if user_api_key:
     openai.api_key = user_api_key
 
 # Title for the app
-st.title("Multilingual Word Analyzer")
+st.title("Dictionary for Thai, French, and English")
 st.markdown(
-    "Enter a word or phrase in Thai, French, or English to get its definition, translation, and synonyms in different languages."
+    """Enter a word or phrase in Thai, French, or English to get its definition, translation, and synonyms in different languages. \n 
+    If french word cannot analyse, please enter the french word with article
+    """
 )
 
 # Helper Functions
