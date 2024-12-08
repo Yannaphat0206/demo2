@@ -17,7 +17,7 @@ if user_api_key:
 # Title for the app
 st.title("Dictionary for Thai, French, and English")
 st.markdown(
-    """Enter a word or phrase in Thai, French, or English to get its definition, translation, and synonyms in different languages. \n 
+    """Enter a word or phrase in Thai, French, or English to get its definition, translation, and synonyms in different languages. 
     If french word cannot analyse, please enter the french word with article
     """
 )
