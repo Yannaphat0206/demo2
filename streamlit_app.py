@@ -6,7 +6,6 @@ from pythainlp.spell import correct as thai_correct
 import pandas as pd
 import nltk
 
-
 nltk.download('wordnet')
 nltk.download('omw-1.4')
 
@@ -61,7 +60,19 @@ def fetch_synonyms(word, lang):
         f"List at least 4 synonyms for the word '{word}' in {lang}. "
         f"Provide definitions for each synonym as a table with two columns: Synonym and Definition."
     )
-    return get_openai_response(prompt)
+    response = get_openai_response(prompt)
+    if response:
+        # Attempt to parse response into a DataFrame
+        try:
+            data = []
+            for line in response.split("\n"):
+                if ":" in line:
+                    synonym, definition = line.split(":", 1)
+                    data.append({"Synonym": synonym.strip(), "Definition": definition.strip()})
+            return pd.DataFrame(data)
+        except Exception:
+            return response  # Return raw response if parsing fails
+    return None
 
 # Main Application Logic
 user_input = st.text_input("Enter a word or phrase:")
@@ -98,11 +109,22 @@ if user_input.strip() and user_api_key:
             definition_translation = fetch_definition(translation, lang)
             st.write(f"In {lang}: {definition_translation}")
 
-        # Step 5: Fetch synonyms
-        st.write("Synonyms with Definitions:")
+        # Step 5: Fetch synonyms in the same language
+        st.subheader(f"Synonyms in {detected_language} (Original Language):")
+        synonyms_original = fetch_synonyms(user_input, detected_language)
+        if isinstance(synonyms_original, pd.DataFrame):
+            st.table(synonyms_original)
+        else:
+            st.write(synonyms_original)
+
+        # Step 6: Fetch synonyms in other languages
+        st.write("Synonyms in Other Languages:")
         for lang, translation in translations.items():
-            st.write(f"Synonyms in {lang}:")
-            synonym_data = fetch_synonyms(translation, lang)
-            st.write(synonym_data)
+            st.subheader(f"Synonyms in {lang}:")
+            synonyms_data = fetch_synonyms(translation, lang)
+            if isinstance(synonyms_data, pd.DataFrame):
+                st.table(synonyms_data)
+            else:
+                st.write(synonyms_data)
 else:
     st.warning("Please provide valid input and API Key.")
