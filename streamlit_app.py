@@ -61,18 +61,22 @@ def fetch_synonyms(word, lang):
         f"Provide definitions for each synonym as a table with two columns: Synonym and Definition."
     )
     response = get_openai_response(prompt)
+    
+    # Log the raw response for debugging
+    st.write(f"Raw API Response for synonyms in {lang}: {response}")
 
-    # Attempt to parse response into a DataFrame
-    try:
-        data = []
-        for line in response.split("\n"):
-            if ":" in line:
-                synonym, definition = line.split(":", 1)
-                data.append({"Synonym": synonym.strip(), "Definition": definition.strip()})
-        if data:
-            return pd.DataFrame(data)
-    except Exception:
-        pass
+    if response:
+        # Attempt to parse response into a DataFrame
+        try:
+            data = []
+            for line in response.split("\n"):
+                if ":" in line:
+                    synonym, definition = line.split(":", 1)
+                    data.append({"Synonym": synonym.strip(), "Definition": definition.strip()})
+            if data:
+                return pd.DataFrame(data)
+        except Exception as e:
+            st.error(f"Error parsing synonyms: {str(e)}")
     return response or "No synonyms found."
 
 # Main Application Logic
@@ -115,6 +119,8 @@ if user_input.strip() and user_api_key:
         synonyms_original = fetch_synonyms(user_input, detected_language)
         if isinstance(synonyms_original, pd.DataFrame):
             st.table(synonyms_original)
+        else:
+            st.write(synonyms_original)  # Show raw response if no DataFrame is returned
 
         # Step 6: Fetch synonyms in other languages
         st.write("Synonyms in Other Languages:")
@@ -123,5 +129,7 @@ if user_input.strip() and user_api_key:
             synonyms_data = fetch_synonyms(translation, lang)
             if isinstance(synonyms_data, pd.DataFrame):
                 st.table(synonyms_data)
+            else:
+                st.write(synonyms_data)  # Show raw response if no DataFrame is returned
 else:
     st.warning("Please provide valid input and API Key.")
