@@ -1,15 +1,12 @@
-import openai
 import streamlit as st
+import openai
 import langid
-import pandas as pd
 from deep_translator import GoogleTranslator
 from spellchecker import SpellChecker
 from pythainlp.spell import correct as thai_correct
+import pandas as pd
 import nltk
-from nltk.corpus import wordnet
-import requests
 
-# Ensure necessary NLTK data is available
 nltk.download('wordnet')
 nltk.download('omw-1.4')
 
@@ -18,168 +15,97 @@ user_api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password
 if user_api_key:
     openai.api_key = user_api_key
 
-# OpenAI Function to get definition using ChatGPT model
-def get_openai_definition(word):
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # or "gpt-4" if you have access
-            messages=[{"role": "system", "content": "You are a helpful assistant."},
-                      {"role": "user", "content": f"Provide a definition for the word '{word}'"}],
-            max_tokens=100,
-            temperature=0.7
-        )
-        return response['choices'][0]['message']['content'].strip()
-    except Exception as e:
-        return f"Error: {str(e)}"
+# Title for the app
+st.title("Multilingual Word Analyzer")
+st.markdown(
+    "Enter a word or phrase in Thai, French, or English to get its definition, translation, and synonyms in different languages."
+)
 
-# OpenAI function to determine part of speech and gender (for French)
-def get_openai_pos_gender(word, lang):
+# Helper Functions
+def detect_language(text):
+    lang, _ = langid.classify(text)
+    supported_languages = {"en": "English", "fr": "French", "th": "Thai"}
+    return supported_languages.get(lang, f"{lang} not supported")
+
+def correct_spelling(text, lang):
+    if lang == "Thai":
+        corrected = thai_correct(text)
+    else:
+        spell = SpellChecker(language="fr" if lang == "French" else "en")
+        corrected = " ".join([spell.correction(word) for word in text.split()])
+    return corrected if corrected != text else None
+
+def translate_word(word, source_lang):
     try:
-        if lang != 'fr':
-            return "POS and Gender not applicable"
-        
-        # Constructing a prompt for French POS and gender
-        prompt = f"Determine the part of speech and gender of the French word '{word}'. Provide both the POS and gender if applicable."
-        
+        translations = {
+            "en": GoogleTranslator(source=source_lang, target="en").translate(word),
+            "fr": GoogleTranslator(source=source_lang, target="fr").translate(word),
+            "th": GoogleTranslator(source=source_lang, target="th").translate(word),
+        }
+        return translations
+    except Exception as e:
+        return {"Error": f"Translation failed: {str(e)}"}
+
+def get_openai_response(prompt):
+    try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # or "gpt-4" if you have access
+            model="gpt-3.5-turbo",
             messages=[{"role": "system", "content": "You are a helpful assistant."},
                       {"role": "user", "content": prompt}],
-            max_tokens=100,
+            max_tokens=500,
             temperature=0.7
         )
         return response['choices'][0]['message']['content'].strip()
     except Exception as e:
         return f"Error: {str(e)}"
 
-# Function to detect language using OpenAI
-def detect_language_openai(text):
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # or "gpt-4"
-            messages=[{"role": "system", "content": "You are a helpful assistant."},
-                      {"role": "user", "content": f"Detect the language of the following text: '{text}'"}],
-            max_tokens=50,
-            temperature=0.5
-        )
-        language = response['choices'][0]['message']['content'].strip()
-        return language
-    except Exception as e:
-        return f"Error: {str(e)}"
+def fetch_definition(word, lang):
+    prompt = f"Provide the definition of the word '{word}' in {lang}."
+    return get_openai_response(prompt)
 
-# Function to correct spelling
-def correct_spelling(text, lang):
-    spell = SpellChecker(language=lang)
-    words = text.split()
-    corrected_words = [spell.correction(word) for word in words]
-    return " ".join(corrected_words)
+def fetch_synonyms(word, lang):
+    prompt = (
+        f"List at least 4 synonyms for the word '{word}' in {lang}. "
+        f"Provide definitions for each synonym as a table with two columns: Synonym and Definition."
+    )
+    return get_openai_response(prompt)
 
-# Translation function
-def translate_input(user_input, detected_lang):
-    translations = {}
-    try:
-        if detected_lang == "fr":
-            translations["English"] = GoogleTranslator(source="fr", target="en").translate(user_input)
-            translations["Thai"] = GoogleTranslator(source="fr", target="th").translate(user_input)
-        elif detected_lang == "en":
-            translations["French"] = GoogleTranslator(source="en", target="fr").translate(user_input)
-            translations["Thai"] = GoogleTranslator(source="en", target="th").translate(user_input)
-        elif detected_lang == "th":
-            translations["English"] = GoogleTranslator(source="th", target="en").translate(user_input)
-            translations["French"] = GoogleTranslator(source="th", target="fr").translate(user_input)
-        else:
-            return {}
-    except Exception as e:
-        return {"Error": f"Translation Error: {str(e)}"}
-    return translations
+# Main Application Logic
+user_input = st.text_input("Enter a word or phrase:")
 
-# Get synonyms for different languages
-def get_synonyms_and_definitions(word, lang):
-    if lang == 'en':
-        synonyms = get_synonyms_nltk_english(word)
-    elif lang == 'fr':
-        synonyms = get_synonyms_french(word)
-    elif lang == 'th':
-        synonyms = get_synonyms_thai(word)
+if user_input.strip() and user_api_key:
+    # Step 1: Detect language
+    detected_language = detect_language(user_input)
+    st.write(f"Detected Language: {detected_language}")
+
+    if "not supported" in detected_language:
+        st.error(f"Language not supported: {detected_language}")
     else:
-        return "Language not supported"
-
-    definitions = [get_openai_definition(syn) for syn in synonyms]
-    pos_and_gender = [get_openai_pos_gender(syn, lang) for syn in synonyms]
-    
-    # Create a DataFrame for synonyms, POS, and Definitions
-    data = [{"Synonym": syn, "POS & Gender": pos, "Definition": defn} for syn, pos, defn in zip(synonyms, pos_and_gender, definitions)]
-    return pd.DataFrame(data)
-
-# Function to get English synonyms using NLTK
-def get_synonyms_nltk_english(word):
-    synonyms = set()
-    for syn in wordnet.synsets(word):
-        for lemma in syn.lemmas():
-            synonyms.add(lemma.name())
-    while len(synonyms) < 3:
-        synonyms.add(word)
-    return list(synonyms)
-
-# Function to get French synonyms using WordReference API (example)
-def get_synonyms_french(word):
-    try:
-        url = f"https://api.wordreference.com/0.8/your_api_key/json/fren/en/{word}"  # Replace with your actual API key
-        response = requests.get(url).json()
-        if 'term0' in response:
-            return [entry['term'] for entry in response['term0']['entries']]
-        else:
-            return [word]  # Default to the word itself if no synonyms found
-    except Exception as e:
-        return [f"Error fetching synonyms for {word}: {str(e)}"]  # Return detailed error
-
-# Function to get Thai synonyms using PyThaiNLP
-def get_synonyms_thai(word):
-    try:
-        synonyms = [thai_correct(word)]  # Placeholder; integrate more sophisticated logic as needed
-        if len(synonyms) == 0:
-            return [f"No synonyms found for {word}"]  # Fallback
-        return synonyms
-    except Exception as e:
-        return [f"Error fetching synonyms for {word}: {str(e)}"]  # Return detailed error
-
-# Main app
-st.title("Translator with Synonym, POS, Gender, and Definition")
-st.markdown("Input your vocabulary, and we'll provide translations, synonyms, part of speech, gender (for French), and definitions.")
-
-# User input
-user_input = st.text_area("Enter the word or phrase:")
-
-if user_input.strip():  # Ensure non-empty input
-    detected_lang = langid.classify(user_input)[0]
-    st.write(f"Detected Language: {detected_lang.upper()}")
-
-    # Correct spelling if necessary
-    if detected_lang in ["en", "fr"]:
-        corrected_word = correct_spelling(user_input, detected_lang)
-        if corrected_word != user_input:
-            st.write(f"Corrected Spelling: {corrected_word}")
-            user_input = corrected_word
-    elif detected_lang == "th":
-        corrected_word = thai_correct(user_input)
-        if corrected_word != user_input:
-            st.write(f"Corrected Spelling: {corrected_word}")
+        # Step 2: Correct spelling
+        corrected_word = correct_spelling(user_input, detected_language)
+        if corrected_word:
+            st.warning(f"This isn't correct spelling. Did you mean: {corrected_word}?")
             user_input = corrected_word
 
-    # Translate the input and display the result
-    translations = translate_input(user_input, detected_lang)
-    if translations:
+        # Step 3: Fetch translations
+        translations = translate_word(user_input, detected_language)
         st.write("Translations:")
         for lang, translation in translations.items():
             st.write(f"- {lang}: {translation}")
 
-        # Get synonyms, POS, gender, and definitions for each language
+        # Step 4: Fetch definitions
+        st.write("Definitions:")
+        definition_original = fetch_definition(user_input, detected_language)
+        st.write(f"In {detected_language}: {definition_original}")
         for lang, translation in translations.items():
-            st.write(f"{lang} Synonyms, POS, Gender, and Definitions:")
-            translated_df = get_synonyms_and_definitions(translation, lang)
-            if isinstance(translated_df, pd.DataFrame):
-                st.dataframe(translated_df)
-            else:
-                st.write(translated_df)  # Handle error message (e.g., "Language not supported")
+            definition_translation = fetch_definition(translation, lang)
+            st.write(f"In {lang}: {definition_translation}")
+
+        # Step 5: Fetch synonyms
+        st.write("Synonyms with Definitions:")
+        for lang, translation in translations.items():
+            st.write(f"Synonyms in {lang}:")
+            synonym_data = fetch_synonyms(translation, lang)
+            st.write(synonym_data)
 else:
-    st.warning("Please enter a valid word or phrase to process.")
+    st.warning("Please provide valid input and API Key.")

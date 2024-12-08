@@ -9,3 +9,4 @@ pythainlp
 PyDictionary
 pronouncing
 nltk
+pandas
