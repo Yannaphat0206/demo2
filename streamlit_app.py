@@ -115,21 +115,17 @@ if user_input.strip() and user_api_key:
             st.write(f"In {lang}: {definition_translation}")
 
         # Step 5: Fetch synonyms in the same language
-        st.subheader(f"Synonyms in {detected_language} (Original Language):")
-        synonyms_original = fetch_synonyms(user_input, detected_language)
-        if isinstance(synonyms_original, pd.DataFrame):
-            st.table(synonyms_original)
-        else:
-            st.write(synonyms_original)
+st.subheader(f"Synonyms in {detected_language} (Original Language):")
+synonyms_original = fetch_synonyms(user_input, detected_language)
+if isinstance(synonyms_original, pd.DataFrame):
+    st.table(synonyms_original)
 
-        # Step 6: Fetch synonyms in other languages
-        st.write("Synonyms in Other Languages:")
-        for lang, translation in translations.items():
-            st.subheader(f"Synonyms in {lang}:")
-            synonyms_data = fetch_synonyms(translation, lang)
-            if isinstance(synonyms_data, pd.DataFrame):
-                st.table(synonyms_data)
-            else:
-                st.write(synonyms_data)
+# Step 6: Fetch synonyms in other languages
+st.write("Synonyms in Other Languages:")
+for lang, translation in translations.items():
+    st.subheader(f"Synonyms in {lang}:")
+    synonyms_data = fetch_synonyms(translation, lang)
+    if isinstance(synonyms_data, pd.DataFrame):
+        st.table(synonyms_data)
 else:
     st.warning("Please provide valid input and API Key.")
