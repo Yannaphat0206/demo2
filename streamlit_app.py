@@ -1,7 +1,6 @@
 import streamlit as st
 import openai
 import langid
-from deep_translator import GoogleTranslator
 from spellchecker import SpellChecker
 from pythainlp.spell import correct as thai_correct
 import pandas as pd
@@ -35,16 +34,9 @@ def correct_spelling(text, lang):
         corrected = " ".join([spell.correction(word) for word in text.split()])
     return corrected if corrected != text else None
 
-def translate_word(word, source_lang):
-    try:
-        translations = {
-            "en": GoogleTranslator(source=source_lang, target="en").translate(word),
-            "fr": GoogleTranslator(source=source_lang, target="fr").translate(word),
-            "th": GoogleTranslator(source=source_lang, target="th").translate(word),
-        }
-        return translations
-    except Exception as e:
-        return {"Error": f"Translation failed: {str(e)}"}
+def get_openai_translation(word, source_lang, target_lang):
+    prompt = f"Translate the word '{word}' from {source_lang} to {target_lang}."
+    return get_openai_response(prompt)
 
 def get_openai_response(prompt):
     try:
@@ -88,7 +80,11 @@ if user_input.strip() and user_api_key:
             user_input = corrected_word
 
         # Step 3: Fetch translations
-        translations = translate_word(user_input, detected_language)
+        translations = {}
+        for target_lang in ["English", "French", "Thai"]:
+            if target_lang != detected_language:
+                translations[target_lang] = get_openai_translation(user_input, detected_language, target_lang)
+        
         st.write("Translations:")
         for lang, translation in translations.items():
             st.write(f"- {lang}: {translation}")
