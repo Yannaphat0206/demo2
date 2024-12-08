@@ -6,6 +6,7 @@ from pythainlp.spell import correct as thai_correct
 import pandas as pd
 import nltk
 
+
 nltk.download('wordnet')
 nltk.download('omw-1.4')
 
